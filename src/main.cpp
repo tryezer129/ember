@@ -12,6 +12,8 @@
 
 #include "dump.hpp"
 #include "memory.hpp"
+#include "cpu.hpp"
+#include "alu.hpp"
 
 // Turn a word into a number. Accepts decimal (65) and hex (0x41).
 // Returns false if the word is not a number at all.
@@ -37,7 +39,8 @@ static void print_help() {
 
 int main() {
     Memory mem;  // 4096 bytes, on the stack, zeroed by the {} in memory.hpp
-
+    CPU cpu;
+    cpu.mem = &mem;
     std::cout << "ember 0.1 - 4096 bytes of memory you can see. Type `help`.\n";
 
     std::string line;
@@ -89,6 +92,45 @@ int main() {
                 std::cout << "address " << addr << " is outside 0.." << MEM_SIZE - 1
                           << '\n';
             }
+        } else if (cmd == "alu") {
+            std::string op, sa, sb;
+            long va = 0, vb = 0;
+            if (!(words >> op) || !(words >> sa) || !parse_number(sa, va)) {
+                std::cout << "usage: alu <add|and|shl> <a> [b]\n";
+            } else {
+                Flags f;
+                Byte r = 0;
+                bool two_args = (op == "add" || op == "and");
+                if (two_args && (!(words >> sb) || !parse_number(sb, vb))) {
+                    std::cout << "usage: alu " << op << " <a> <b>\n";
+                } else {
+                    if      (op == "add") r = alu_add((Byte)va, (Byte)vb, f);
+                    else if (op == "and") r = alu_and((Byte)va, (Byte)vb, f);
+                    else if (op == "shl") r = alu_shl((Byte)va, f);
+                    else { std::cout << "unknown alu op: " << op << '\n'; }
+                    if (op == "add" || op == "and" || op == "shl") {
+                        std::cout << "result=" << (int)r
+                                  << "  Z=" << f.z << " N=" << f.n << " C=" << f.c << '\n';
+                    }
+                }
+            }
+        } else if (cmd == "reg") {
+            std::string r, v;
+            long value = 0;
+            if (!(words >> r) || !(words >> v) || !parse_number(v, value) ||
+                value < 0 || value > 255) {
+                std::cout << "usage: reg <a|b> <0..255>\n";
+                } else if (r == "a") {
+                    cpu.a = (Byte)value;
+                } else if (r == "b") {
+                    cpu.b = (Byte)value;
+                } else {
+                    std::cout << "unknown register: " << r << '\n';
+                }
+        } else if (cmd == "step") {
+            step(cpu);
+        } else if (cmd == "regs") {
+            dump_regs(cpu);
         } else {
             std::cout << "unknown command: " << cmd << " (try `help`)\n";
         }

@@ -26,5 +26,5 @@ struct Memory {
 Byte mem_get(const Memory& mem, std::size_t addr);
 
 // Write `value` at `addr`. Return false (and change nothing) if `addr` is
-// outside the box. Returning false is how main.cpp knows to print a message.
+// outsid03,+e the box. Returning false is how main.cpp knows to print a message.
 bool mem_set(Memory& mem, std::size_t addr, Byte value);
